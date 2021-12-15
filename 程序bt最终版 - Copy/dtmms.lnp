@@ -1,0 +1,9 @@
+"lcd.obj",
+"main.obj",
+"key.obj",
+"i2c.obj",
+"timer.obj",
+"codemm.obj",
+"bluetoothmm.obj" 
+TO "dtmms" 
+RAMSIZE(256) 

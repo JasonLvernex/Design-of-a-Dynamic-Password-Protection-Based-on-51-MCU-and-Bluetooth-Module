@@ -1,0 +1,621 @@
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: F:\keil51\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(0,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /**************************************************************************************
+   2          *                             µç×ÓÃÜÂëËø                                                                                                  *
+   3          ÊµÏÖÏÖÏó£ºÏÂÔØ³ÌÐòÊäÈëÕýÈ·ÃÜÂë£¬»áÌýµ½¼ÌµçÆ÷ÎüºÏµÄÉùÒô
+   4          Ó²¼þÁ¬½Ó£º
+   5                     P1 -->¾ØÕó¼üÅÌ
+   6                                                   P20--> EEPROMÄ£¿éSDA
+   7                                                   P21--> EEPROMÄ£¿éSCL
+   8                                                   P22-->¼ÌµçÆ÷Ä£¿éJ15
+   9                                                   
+  10                                                   ¾ØÕó¼üÅÌ£º
+  11                                                   1      2      3       13(empty)
+  12                                                   
+  13                                                   4      5      6       up(16)
+  14                                                   
+  15                                                   7      8      9      down(19)
+  16                                                   
+  17                                          ·µ»Ø£¨10£©  0£¨0£© È·¶¨£¨12£©      21£¨empty£©
+  18          ×¢ÒâÊÂÏî£ºÎÞ                                                                                                                                                              
+  19          ***************************************************************************************/
+  20          
+  21          #include "reg52.h"                     //´ËÎÄ¼þÖÐ¶¨ÒåÁËµ¥Æ¬»úµÄÒ»Ð©ÌØÊâ¹¦ÄÜ¼Ä´æÆ÷
+  22          #include "lcd.h"
+  23          #include "key.h"
+  24          #include "i2c.h"
+  25          #include "timer.h"
+  26          #include "codemm.h"
+  27          #include "bluetoothmm.h"
+  28          
+  29          
+  30          #define u16 unsigned int          //¶ÔÊý¾ÝÀàÐÍ½øÐÐÉùÃ÷¶¨Òå
+  31          #define u8 unsigned char
+  32          
+  33          sbit AS=P2^2;               //¼ÌµçÆ÷ D3  LED is test light D4
+  34          
+  35          
+  36          /*****************************************************************************/
+  37          
+  38          /*****************************************************************************/
+  39          u8 pw_num,Error_Num,PassWord_Length=6;
+  40          u8 PASSWORD[]={8,8,8,8,8,8,0,0,0,0};
+  41          u8 INPUT_PW_Tab[10];
+  42          u8 key_num,Step,Step5,Load_first_flag=0;
+  43          u8 dtmm_enable=1;
+  44          u8 lcd_clear=0;
+  45          u8 code_execute_flag=0;
+  46          int test1=0;
+  47          int jet=0;
+  48          u8 seed=0;
+  49          u8 light=0;
+  50          int yet=0;
+  51          int cyphernumber;
+  52          
+  53          
+  54          
+  55          /*****************************************************************************/
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 2   
+
+  56          
+  57          /*******************************************************************************/
+  58          bit result_flag,Input_suc_flag;
+  59          
+  60          /*****************************************************************************/
+  61          
+  62          /*******************************************************************************/
+  63          void Step_0();
+  64          void Step_1();
+  65          void Step_2();
+  66          void Step_3();
+  67          void Step_4();
+  68                    
+  69          void Step_5();
+  70                           void Step5_0();
+  71                     void Step5_1();
+  72                     void Step5_2();
+  73                     void Step5_3();
+  74                     void Step5_4();
+  75                     void Step5_5();
+  76          void Step_6();
+  77          /********************************************************************************/
+  78          
+  79          /*******************************************************************************/
+  80          void CipherComparison();
+  81          void input_password(bit m);
+  82          void Read_Password();
+  83          void code_execute();
+  84          
+  85          
+  86          
+  87          /*******************************************************************************
+  88          * º¯ Êý Ãû       : main
+  89          * º¯Êý¹¦ÄÜ               : Ö÷º¯Êý
+  90          * Êä    Èë       : ÎÞ
+  91          * Êä    ³ö       : ÎÞ
+  92          *******************************************************************************/
+  93          void main()
+  94          {       
+  95   1              //u8 data1,a;
+  96   1              int j=0;
+  97   1              //      ShowString(0x00," Pechin Science ");  
+  98   1              //      At24c02Write(0,0);                                                //¿ª»úÏÔÊ¾ÃÜÂë
+  99   1              LcdWriteCom(0x01);  //ÇåÆÁ
+ 100   1      /*      for(data1=0;data1<PassWord_Length+2;data1++)
+ 101   1              {
+ 102   1                      a=At24c02Read(data1)+0x30;
+ 103   1                      LcdWriteData(a);        
+ 104   1              delay(1000);    
+ 105   1        }     //¿ª»úË²¼ä»áÏÔÊ¾ÃÜÂë£¬×îºóÒªÉ¾³ý´Ë¶ÎforÑ­»·      */
+ 106   1              
+ 107   1              delay(1000);
+ 108   1              LcdInit();       //LCD³õÊ¼»¯
+ 109   1              delay(1000);
+ 110   1              Step=0;          
+ 111   1              Step5=0;           //²½Öèº¯ÊýCase¹éÁã
+ 112   1              Error_Num=0x00;
+ 113   1              if(At24c02Read(0x09)!=1) At24c02Write(0,0x00);
+ 114   1         Read_Password();  //ÆäÖÐ°üÀ¨ÁËÁ½²¿·Ö£¬Ò»²¿·ÖÎªµÚÒ»´ÎÊ¹ÓÃÊ±Éè¶¨³õÊ¼ÃÜÂë£¬µÚ¶þ²¿·ÖÎªÈç²»ÊÇµÚÒ»´ÎÊ¹ÓÃÊ±£¬´
+             -Ó24c02¶ÁÈ¡ÉèÖÃµÄÃÜÂë
+ 115   1              
+ 116   1          //±£´æ ÃÜÂë³¤¶È
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 3   
+
+ 117   1      //              for(j=0;j<10;j++)
+ 118   1      //              {
+ 119   1      //                      At24c02Write(j,j);
+ 120   1      //                      delay(100);     
+ 121   1      //              }
+ 122   1      //      
+ 123   1                      Timer0Init();
+ 124   1                      UsartConfiguration();
+ 125   1              
+ 126   1              while(1)
+ 127   1                                      {                       
+ 128   2                                                                      
+ 129   2                                                                      key_num=KeyDown();                   //¶ÁÈ¡ÊäÈëÖµ
+ 130   2                                                              
+ 131   2      
+ 132   2                                                                                      switch(Step)
+ 133   2                                                                                      {
+ 134   3                                                                                                      case 0:
+ 135   3                                                                                                       {Step_0();break;}
+ 136   3                                                                                                      case 1:
+ 137   3                                                                                                       {Step_1();break;}
+ 138   3                                                                                                      case 2:
+ 139   3                                                                                                       {Step_2();break;}
+ 140   3                                                                                                      case 3:
+ 141   3                                                                                                       {Step_3();break;}      
+ 142   3                                                                                                      case 4:
+ 143   3                                                                                                       {Step_4();break;}      
+ 144   3                                                                                                      case 5:
+ 145   3                                                                                                       {Step_5();break;}      
+ 146   3                                                                                                      case 6:
+ 147   3                                                                                                       {Step_6();break;}      
+ 148   3                                                                                                        
+ 149   3                                                                                      }
+ 150   2      
+ 151   2                                                                      if(  At24c02Read(0x0a)==1)
+ 152   2                                                               {      
+ 153   3                                                                      for(j=0;j<6;j++)       //¶ÁÈ¡ÃÜÂë
+ 154   3                                      {
+ 155   4                                                PASSWORD[j]=At24c02Read(j+2);
+ 156   4                                         }            
+ 157   3                                       At24c02Write(1,6);                //±£´æ ÃÜÂë³¤¶È
+ 158   3                                         delay(100);
+ 159   3                                                                 At24c02Write(10,0);}   //ÐÂÃÜÂëµÄ¶ÁÈ¡¡£
+ 160   2      
+ 161   2                                       }
+ 162   1                                                                              
+ 163   1      }
+ 164          
+ 165          /*****************************************************************************/
+ 166          
+ 167          /*******************************************************************************/
+ 168          void Step_0()
+ 169          {
+ 170   1                                              LcdInit();
+ 171   1                                              ShowString(0x00," Pechin Science ");                           //µÚÒ»ÐÐÏÔÊ¾Pechin Science 
+ 172   1                      ShowString(0x10,"    WELCOME!    ");                           // µÚ¶þÐÐÏÔÊ¾ WELCOME!  
+ 173   1              
+ 174   1                                              while(KeyDown()==0xff){ code_execute();Step=1; }                                 //  ÓÐ°´¼ü°´ÏÂ½øÈëÏÂ
+             -Ò»²½  
+ 175   1                    
+ 176   1                                              
+ 177   1      }
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 4   
+
+ 178          /*****************************************************************************/
+ 179          
+ 180          /*******************************************************************************/
+ 181          void Step_1()
+ 182          {
+ 183   1                      LcdWriteCom(0x01);                                           //ÇåÆÁ
+ 184   1                ShowString(0x00,"Unlock");
+ 185   1                      ShowString(0x0f,"<");                                          //1602µÚÒ»ÐÐÏÔÊ¾unlock
+ 186   1                ShowString(0x10,"Change Password");
+ 187   1                      ShowString(0x1f," ");                                          // 1602µÚ¶þÐÐÏÔÊ¾Change Password          
+             -                                                                      
+ 188   1                Step=2;                                                             //
+ 189   1      }
+ 190          /*****************************************************************************/
+ 191          
+ 192          /*******************************************************************************/
+ 193          void Step_2()
+ 194          {        static menu=1;
+ 195   1           int yet=0,back_step=0;
+ 196   1              
+ 197   1              if(key_num!=0x0c)  
+ 198   1                      {                       
+ 199   2                           
+ 200   2                          if(key_num==0x10)                    //16¼ü»ò19¼ü°´ÏÂ
+ 201   2                                              {          menu--;lcd_clear=1;
+ 202   3                                               if(menu==0) menu=3;}
+ 203   2                              if(key_num==0x13)
+ 204   2                                                      {          menu++;lcd_clear=1;
+ 205   3                                               if(menu==4) menu=1;}
+ 206   2                              if(key_num!=0x10&&key_num!=0x13) {back_step=1;goto marke;}
+ 207   2      
+ 208   2                                       switch(menu)
+ 209   2                                                                                      {
+ 210   3                                                                                                      case 1:
+ 211   3                                                                                                       {
+ 212   4                                                                                                       if(lcd_clear==1)       LcdWriteCom(0x01);                                         //ÇåÆÁ
+ 213   4                                                              ShowString(0x00,"Unlock");
+ 214   4                                                                   ShowString(0x0f,"<");                                           
+             -  //
+ 215   4                                                              ShowString(0x10,"Change Password");
+ 216   4                                                                   ShowString(0x1f," ");
+ 217   4                                                                                                               lcd_clear=0; 
+ 218   4                                                                                                       break;}
+ 219   3                                                                                                      case 2:
+ 220   3                                                                                                       {
+ 221   4                                                                                                   if(lcd_clear==1)   LcdWriteCom(0x01);                                           //ÇåÆÁ
+ 222   4                                                              ShowString(0x00,"Unlock");
+ 223   4                                                                   ShowString(0x0f," ");                                           
+             -  //
+ 224   4                                                              ShowString(0x10,"Change Password");
+ 225   4                                                                   ShowString(0x1f,"<"); 
+ 226   4                                                                                                               lcd_clear=0; 
+ 227   4                                                                                                       break;}
+ 228   3                                                                                                      case 3:
+ 229   3                                                                                                       {
+ 230   4                                                                                                       if(lcd_clear==1)       LcdWriteCom(0x01);                                           //ÇåÆÁ
+ 231   4                                                              ShowString(0x00,"Change Password");
+ 232   4                                                                   ShowString(0x0f," ");                                           
+             -  //
+ 233   4                                                              ShowString(0x10,"enable dtmm");
+ 234   4                                                                   ShowString(0x1f,"<");
+ 235   4                                                                                                               lcd_clear=0;  
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 5   
+
+ 236   4                                                                                                       break;}
+ 237   3                                                                                                       default: break;
+ 238   3                                                                                                        
+ 239   3                                                                                      }
+ 240   2                                                                                      marke:        //¼Ó¿ìÁËÕâÀïswitch µÄÔËÐÐ                   
+ 241   2                                                        
+ 242   2                                                      if(back_step==1)
+ 243   2                                            { //for(yet=0;yet<20;yet++){AS=~AS; delay(3000);AS=~AS;delay(3000);} 
+ 244   3                                                             jet++;
+ 245   3                                                                if(jet==5000){ jet=0; Step=0;for(yet=0;yet<20;yet++){AS=~AS; delay(1000);AS=~AS;delay(3000);}}
+ 246   3                                                                }             ;                                 //³¤Ê±¼ä²»¶¯£¬·µ»ØÊ×Ò³*/ /*ÈÔ´æÔÚÎÊÌâ*/
+ 247   2                                              
+ 248   2                       }
+ 249   1              else                                                           //È·ÈÏ¼ü°´ÏÂ
+ 250   1              {
+ 251   2                                              if(menu==1){Step=3;menu=1;}
+ 252   2                                              if(menu==2) {Step=5;menu=1;}
+ 253   2                                              if(menu==3) {dtmm_enable=~dtmm_enable;
+ 254   3                                                           if(dtmm_enable==1)TR0=1;
+ 255   3                                                                   else TR0=0;
+ 256   3                                                                       menu=1;
+ 257   3                                                                                              LcdWriteCom(0x01);                                         //ÇåÆÁ
+ 258   3                                            if(TR0==1){        ShowString(0x00,"enabled");
+ 259   4                                                                                                        delay(10000);
+ 260   4                                                           }
+ 261   3                                                                        else if(TR0==0){        ShowString(0x00,"disabled");
+ 262   4                                                                                                 delay(10000);
+ 263   4                                                           }
+ 264   3                                                                       Step=1;
+ 265   3                                                                      /* for(yet=0;yet<20;yet++) {AS=~AS; delay(10000);AS=~AS;delay(10000);}  */
+ 266   3                                                                  }
+ 267   2              }
+ 268   1      }
+ 269          /*****************************************************************************/
+ 270          
+ 271          /*******************************************************************************/
+ 272          void Step_3()                                             //
+ 273          {
+ 274   1                                                                      Step=4;
+ 275   1                            pw_num=0;
+ 276   1                                                                      LcdInit();
+ 277   1                                                                      ShowString(0x00,"Pass Word:  ");
+ 278   1                      
+ 279   1                                                      
+ 280   1      }
+ 281          /*****************************************************************************/
+ 282          
+ 283          /*******************************************************************************/
+ 284          void Step_4()                                                 
+ 285          {
+ 286   1                 input_password(0);                                              //ÊäÈëÃÜÂë²¢ÒÔ*ÏÔÊ¾
+ 287   1                 if(Input_suc_flag==1){Step=6;}                                  //ÃÜÂëÊäÈëÍê³É½øÈëÏÂÒ»²½
+ 288   1            Input_suc_flag=0;                                              //Çå³ýÃÜÂëÊäÈëÍê³É±êÖ¾
+ 289   1      }
+ 290          /*****************************************************************************/
+ 291          
+ 292          /*******************************************************************************/
+ 293          void Step_5()                                                        //ÐÞ¸ÄÃÜÂë
+ 294          {
+ 295   1              switch(Step5)
+ 296   1              {
+ 297   2                      
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 6   
+
+ 298   2                              case 0: {Step5_0();}  break;
+ 299   2                              case 1: {Step5_1();}  break;
+ 300   2                              case 2: {Step5_2();}  break;
+ 301   2                              case 3: {Step5_3();}  break;
+ 302   2                        case 4: {Step5_4();}  break;
+ 303   2                              case 5: {Step5_5();}    break;
+ 304   2      
+ 305   2              }
+ 306   1      }
+ 307          /*****************************************************************************/
+ 308          
+ 309          /*******************************************************************************/
+ 310          void Step_6()
+ 311          {
+ 312   1              CipherComparison();                                //ÃÜÂë±È¶Ô
+ 313   1              if(result_flag==1)                                 //ÃÜÂëÕýÈ·
+ 314   1                      {
+ 315   2                                      LcdInit();
+ 316   2                                      ShowString(0x00,"    WELCOME!");
+ 317   2                                      AS=0;                                         //¿ª¼ÌµçÆ÷
+ 318   2                                      delay(60000);
+ 319   2                                      delay(60000);
+ 320   2                                      AS=1;                                           //¹Ø¼ÌµçÆ÷
+ 321   2                      }
+ 322   1              else                                                //ÃÜÂë´íÎó
+ 323   1                      {
+ 324   2                                      LcdInit();
+ 325   2                                      ShowString(0x00,"Error 01!");
+ 326   2                      }
+ 327   1                      
+ 328   1                      Step=0;
+ 329   1              
+ 330   1      
+ 331   1      }
+ 332          
+ 333          /****************************************************************************************
+ 334          ÃÜÂëÊäÈëº¯Êý
+ 335          ÃÜÂë³¤¶È£ºpw_num
+ 336          ÃÜÂëÊäÈëÍê³É±êÖ¾£ºInput_suc_flag
+ 337          *****************************************************************************************/
+ 338          
+ 339          void Step5_0()                 
+ 340          {
+ 341   1                      LcdWriteCom(0x01);  //ÇåÆÁ
+ 342   1                ShowString (0x00,"Input PassWord:");     //1602ÏÔÊ¾£ºÊäÈëÃÜÂë
+ 343   1                Step5=1;
+ 344   1                pw_num=0;
+ 345   1      }
+ 346          void Step5_1()                
+ 347          {
+ 348   1                      input_password(0);                  //   ÊäÈëÃÜÂë²¢ÒÔ*ÏÔÊ¾
+ 349   1                      if(Input_suc_flag==1)               //ÃÜÂëÊäÈëÍê³É
+ 350   1                              {
+ 351   2                                                              Step5=2;                  //
+ 352   2                                                              Input_suc_flag=0;         //Çå³ýÃÜÂëÊäÈëÍê³É±êÖ¾
+ 353   2                              }
+ 354   1      }
+ 355          void Step5_2()                //
+ 356          {
+ 357   1           CipherComparison();                //ÃÜÂë±È¶Ô
+ 358   1                 Step5=3;
+ 359   1      }
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 7   
+
+ 360          void Step5_3()                //
+ 361          {
+ 362   1          if(result_flag==0)         //        ÃÜÂë´íÎó
+ 363   1                                      {
+ 364   2                                                              if(Error_Num<3)             //Êä³ö´íÎó´ÎÊýÐ¡ÓÚ3
+ 365   2                                                              {
+ 366   3                                                                      Error_Num++;
+ 367   3                                                                      LcdInit();
+ 368   3                                                                      ShowString (0x00,"Error 01");
+ 369   3                                                                      delay(20000);
+ 370   3                                                                      Step5=0;
+ 371   3                                                              }
+ 372   2                                                              else                          //ÃÜÂë´íÎó´ÎÊý´óÓÚ3
+ 373   2                                                              {
+ 374   3                                                                      Error_Num=0;
+ 375   3                                                                      Step=0;
+ 376   3                                                              }
+ 377   2                                              
+ 378   2                                      }
+ 379   1                      else                                                                                           //ÃÜÂëÕýÈ·
+ 380   1                                      {
+ 381   2                                              LcdInit();
+ 382   2                                              ShowString (0x00,"New PassWord:");      
+ 383   2                                              pw_num=0;
+ 384   2                                              Step5=4;
+ 385   2                                      }
+ 386   1                              
+ 387   1                                              
+ 388   1      }
+ 389          void Step5_4()
+ 390          {
+ 391   1                      input_password(1);                                             //ÊäÈëÃÜÂë²¢ÏÔÊ¾
+ 392   1                      if(Input_suc_flag==1)                  //ÊäÈëÍê³É
+ 393   1                              { 
+ 394   2                                      Step5=5;
+ 395   2                                      Input_suc_flag=0;
+ 396   2                                      LcdWriteCom(0x01);  //ÇåÆÁ
+ 397   2                    ShowString (0x00,"      OK!");
+ 398   2                              }
+ 399   1      }
+ 400          void Step5_5()
+ 401          {
+ 402   1              unsigned char j;
+ 403   1              
+ 404   1              PassWord_Length=pw_num;                         //¶ÁÈ¡ÊäÈëÃÜÂë³¤¶È
+ 405   1              At24c02Write(0,Load_first_flag);        
+ 406   1        delay(100);   
+ 407   1              At24c02Write(1,PassWord_Length);                //±£´æ ÃÜÂë³¤¶È
+ 408   1              delay(100);
+ 409   1              for(j=0;j<PassWord_Length;j++)         
+ 410   1              {
+ 411   2                      PASSWORD[j]=INPUT_PW_Tab[j];                             //¶ÁÈ¡ÃÜÂë
+ 412   2                      At24c02Write(j+2,INPUT_PW_Tab[j]);                       //±£´æÃÜÂëÖÁEEPROM
+ 413   2                      delay(100);
+ 414   2      }
+ 415   1              Step5=0;
+ 416   1              Step=0;
+ 417   1      }
+ 418          
+ 419          
+ 420          void  Read_Password()
+ 421          {
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 8   
+
+ 422   1              unsigned char j;
+ 423   1      
+ 424   1              Load_first_flag=At24c02Read(0x00);
+ 425   1              if(Load_first_flag==0)                   //³õ´ÎÔËÐÐ
+ 426   1              {
+ 427   2                  At24c02Write(9,1);      //³õ´ÎÔËÐÐÎ»ÖÃ1
+ 428   2                      Load_first_flag=1;
+ 429   2                      At24c02Write(0,0x01);
+ 430   2                      delay(100);
+ 431   2                      At24c02Write(1,0x06);           //Ð´Ä¬ÈÏÃÜÂë³¤¶È6ÖÁEEPROM
+ 432   2                      delay(100);
+ 433   2                      for(j=0;j<PassWord_Length;j++)
+ 434   2                      {
+ 435   3                              At24c02Write(j+2,8);              //Ð´Ä¬ÈÏÃÜÂë888888ÖÁEEPROM
+ 436   3                              PASSWORD[j]=INPUT_PW_Tab[j];     //¶ÁÃÜÂë
+ 437   3                              delay(100);
+ 438   3                      }
+ 439   2              }
+ 440   1              
+ 441   1              Load_first_flag=At24c02Read(0x00);
+ 442   1              PassWord_Length=At24c02Read(0x01);  //¶ÁÈ¡ÃÜÂë³¤¶È
+ 443   1              for(j=0;j<PassWord_Length;j++)       //¶ÁÈ¡ÃÜÂë
+ 444   1              {
+ 445   2                      PASSWORD[j]=At24c02Read(j+2);
+ 446   2              }
+ 447   1              
+ 448   1      }
+ 449          void input_password(bit m)
+ 450          {
+ 451   1              unsigned char j;
+ 452   1              if(key_num!=0x0c)                                      //ok¼üÃ»ÓÐ°´ÏÂ
+ 453   1                      {
+ 454   2                                              if(key_num<0x0a)                               //1-9°´ÏÂ
+ 455   2                                              {
+ 456   3                                                      INPUT_PW_Tab[pw_num]=key_num;                //±£´æÖÁÊäÈëÃÜÂëÊý×é
+ 457   3                                                      pw_num=pw_num+1;                              //ÃÜÂë³¤¶È+1
+ 458   3                                                      
+ 459   3                                                       LcdWriteCom(0xc0);
+ 460   3                                                       for(j=0;j<pw_num;j++)
+ 461   3                                                                      {
+ 462   4                                                                                                      if(m==0) {LcdWriteData('*');    }                        //ÃÜÂëÒþ²Ø
+ 463   4                                                                                                      else     {LcdWriteData(INPUT_PW_Tab[j]+0x30);}         //ÏÔÊ¾ÃÜÂë
+ 464   4                                                                      }
+ 465   3                                                                                              
+ 466   3                                              }
+ 467   2                                              if(key_num==0x0a)                              //·µ»Ø¼ü°´ÏÂ
+ 468   2                                              {
+ 469   3                                                      if(pw_num!=0) {pw_num=pw_num-1;}
+ 470   3                                                      else          {Step=0;}
+ 471   3                                                      
+ 472   3                                                               
+ 473   3                                                      // ShowString (0x00,"Pass Word£º");  
+ 474   3                          LcdWriteCom(0xc0);                                          
+ 475   3                                                                                      for(j=0;j<pw_num;j++)
+ 476   3                                                                                              {
+ 477   4                                                                                                                      if(m==0) {LcdWriteData('*');    }                   //ÃÜÂëÒþ²Ø
+ 478   4                                                                                                                      else     {LcdWriteData(INPUT_PW_Tab[j]+0x30);}    //ÏÔÊ¾ÃÜÂë    
+ 479   4                                                                                         }
+ 480   3                                                                                              LcdWriteData(' '); 
+ 481   3                                              }
+ 482   2                      } 
+ 483   1              else                          //ok¼ü°´ÏÂ
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 9   
+
+ 484   1                {
+ 485   2                              if(pw_num==0)     
+ 486   2                                              {
+ 487   3                                                              Step=0;
+ 488   3                                                        LcdWriteCom(0x01);
+ 489   3                                                        ShowString (0x00,"Error 02!");
+ 490   3                                                              delay(10000);
+ 491   3                                              }
+ 492   2                      
+ 493   2                              else{           
+ 494   3                                                              Input_suc_flag=1; 
+ 495   3                                              }
+ 496   2                                               //AS=0;                        
+ 497   2                      }                
+ 498   1      }
+ 499          /*******************************************************
+ 500                          ÃÜÂë±È¶Ô
+ 501          ********************************************************/
+ 502          void CipherComparison()
+ 503          { 
+ 504   1              u8 i,j=0;
+ 505   1      
+ 506   1              if(PassWord_Length==pw_num)                       //ÃÜÂë³¤¶È±È¶Ô
+ 507   1              {
+ 508   2                      for(i=0;i<PassWord_Length;i++)                  //ÃÜÂë±È¶Ô
+ 509   2                      {
+ 510   3                              
+ 511   3                                      if(PASSWORD[i]!=INPUT_PW_Tab[i])
+ 512   3                                              {
+ 513   4                                                      result_flag=0;break;                     //ÃÜÂë´íÎó
+ 514   4                                              }
+ 515   3                                      else
+ 516   3                                              {
+ 517   4                                                      result_flag=1;                          //ÃÜÂëÕýÈ·
+ 518   4                                              }
+ 519   3                                                INPUT_PW_Tab[i]=0XFF;                   //Çå³ýÃÜÂë»º´æÊý×é
+ 520   3                      }
+ 521   2              }
+ 522   1              else
+ 523   1              {result_flag=0;}
+ 524   1         }
+ 525           /*******************************************************************************
+ 526          * º¯ Êý Ãû         : code_execute()
+ 527          * º¯Êý¹¦ÄÜ                 : ÃÜÂëÉú³Éº¯Êý
+ 528          * Êä    Èë         : ÎÞ
+ 529          * Êä    ³ö         : ÎÞ
+ 530          *******************************************************************************/
+ 531          void code_execute()
+ 532           {      if(code_execute_flag==1)
+ 533   1                                                                      {
+ 534   2                                                                      codegenerate(PASSWORD,6,seed);
+ 535   2                                              codesave(PASSWORD);
+ 536   2                                                                      cyphernumber=cyphernum(seed);
+ 537   2                                                                      
+ 538   2                                                                      for(test1=0;test1<20;test1++) {LED=~LED; delay(1000);LED=~LED;delay(1000);}
+ 539   2      
+ 540   2                                                                      code_execute_flag=0;}
+ 541   1               if(light==1){for(yet=0;yet<20;yet++) {AS=~AS; delay(1000);AS=~AS;delay(1000);} light=0;}
+ 542   1       }
+ 543          /*******************************************************************************
+ 544          * º¯ Êý Ãû         : void Timer0() interrupt 1
+ 545          * º¯Êý¹¦ÄÜ                 : ¶¨Ê±Æ÷0ÖÐ¶Ïº¯Êý
+C51 COMPILER V9.01   MAIN                                                                  08/20/2020 19:51:21 PAGE 10  
+
+ 546          * Êä    Èë         : ÎÞ
+ 547          * Êä    ³ö         : ÎÞ
+ 548          *******************************************************************************/
+ 549          void Timer0() interrupt 1
+ 550          {
+ 551   1              static u16 tim=0;
+ 552   1              TH0=0X3C;       //¸ø¶¨Ê±Æ÷¸³³õÖµ£¬¶¨Ê±50ms
+ 553   1              TL0=0XB0;
+ 554   1              tim++;
+ 555   1              seed++;
+ 556   1              
+ 557   1      
+ 558   1              if(tim==1200)  //ÀíÂÛÉÏtim=1200¶¨Ê±1·ÖÖÓ  µ«ÊÇ»úÆ÷ÔËÐÐÏÂÀ´È´ÊÇ10ÃëÖÓ
+ 559   1              {       //int yet=0;
+ 560   2                      tim=0;
+ 561   2                      if(Step==0||Step==1||Step==2)
+ 562   2                      { 
+ 563   3                        light=1;
+ 564   3                      //for(yet=0;yet<20;yet++) {AS=~AS; delay(1000);AS=~AS;delay(1000);} 
+ 565   3                      
+ 566   3                       code_execute_flag=1;
+ 567   3      
+ 568   3                                      
+ 569   3                      
+ 570   3                      }
+ 571   2              }
+ 572   1                      
+ 573   1      }
+ 574          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2439    ----
+   CONSTANT SIZE    =    185    ----
+   XDATA SIZE       =     55    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,264 @@
+C51 COMPILER V9.01   BLUETOOTHMM                                                           08/20/2020 19:51:22 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE BLUETOOTHMM
+OBJECT MODULE PLACED IN bluetoothmm.OBJ
+COMPILER INVOKED BY: F:\keil51\C51\BIN\C51.EXE bluetoothmm.c LARGE OPTIMIZE(0,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include<reg52.h>
+   2          #include<intrins.h>
+   3          #include<bluetoothmm.h>
+   4          #include<i2c.h>
+   5          #include <stdio.h>
+   6          #include <string.h>
+   7          
+   8          u8 passwd[6];
+   9          extern int cyphernumber;
+  10          u8 code ques1[]="how old are you",ques2[]="what is your name",ques3[]="are you a boy",reply[]="wrong";
+  11          u8 ans1[20];
+  12          u8 *point;
+  13          static int alarm=0;
+  14          
+  15          /********************************************************************
+  16          * 名称 : passwordRD()
+  17          * 功能 : 发送密码读取函数
+  18          * 输入 : 无 * 输出 : 无
+  19          ***********************************************************************/
+  20          void passwordRD()
+  21          { int j;
+  22   1        for(j=0;j<6;j++)       //读取密码
+  23   1              {
+  24   2                      passwd[j]=At24c02Read(j+2)+48;
+  25   2              }
+  26   1      
+  27   1      }
+  28          
+  29          
+  30          
+  31          
+  32          
+  33          
+  34          
+  35          
+  36          /********************************************************************
+  37          * 名称 : Com_Int(void) interrupt 4
+  38          * 功能 : 串口中断子函数
+  39          * 输入 : 无 * 输出 : 无
+  40          ***********************************************************************/
+  41          void Com_Int(void) interrupt 4
+  42          {
+  43   1              u8 i,n=0,_cnt=0;
+  44   1        u8 receive_data;
+  45   1        u8 sucess_in_cypher=0;
+  46   1      
+  47   1              
+  48   1        ES = 0;
+  49   1              
+  50   1        if(RI == 1) //当硬件接收到一个数据时，RI会置位
+  51   1              {               
+  52   2                      RI = 0;
+  53   2                      receive_data = SBUF;//接收到的数据
+  54   2                              
+  55   2                      if(receive_data == '9')  
+C51 COMPILER V9.01   BLUETOOTHMM                                                           08/20/2020 19:51:22 PAGE 2   
+
+  56   2                      {               passwordRD();
+  57   3                                      LED =0;//接收到1亮灯
+  58   3                                      switch(cyphernumber)
+  59   3                                      {case 0:
+  60   4                                            { 
+  61   5                                                point=ques1;
+  62   5                                                do{
+  63   6                                                SBUF=*point;
+  64   6                                                while(!TI);
+  65   6                                                TI=0;
+  66   6                                                point++;
+  67   6                                                }while(*point!='\0');
+  68   5                                                while(RI==0&&_cnt<5000){_cnt++;} 
+  69   5                                                      //RI = 0;
+  70   5                                                      do{      ans1[n]=SBUF;
+  71   6                                                               n++;
+  72   6                                                               RI = 0;
+  73   6                                                               Delay_1ms(10);
+  74   6                                                              // while(RI==0);
+  75   6                                                        } while(ans1[n]!='\0');
+  76   5                                                        if(!strcmp(ans1,"21")) sucess_in_cypher=1;
+  77   5                                                        else  {alarm++;
+  78   6      
+  79   6                                                                         point=reply;
+  80   6                                                                do{
+  81   7                                                          SBUF=*point;
+  82   7                                                          while(!TI);
+  83   7                                                          TI=0;
+  84   7                                                          point++;
+  85   7                                                          }while(*point!='\0');
+  86   6      
+  87   6                                                                              point=ans1;
+  88   6                                                                       do{
+  89   7                                                          SBUF=*point;
+  90   7                                                          while(!TI);
+  91   7                                                          TI=0;
+  92   7                                                          point++;
+  93   7                                                          }while(*point!='\0');
+  94   6                                                                       }
+  95   5                                            break;
+  96   5                                              }
+  97   4                                      case 1:
+  98   4                                            { 
+  99   5                                                point=ques2;
+ 100   5                                                do{
+ 101   6                                                SBUF=*point;
+ 102   6                                                while(!TI);
+ 103   6                                                TI=0;
+ 104   6                                                point++;
+ 105   6                                                }while(*point!='\0');
+ 106   5                                                while(RI==0&&_cnt<5000){_cnt++;} 
+ 107   5                                                 //   RI = 0;
+ 108   5                                                      do{      ans1[n]=SBUF;
+ 109   6                                                               n++;
+ 110   6                                                               RI = 0;
+ 111   6                                                               Delay_1ms(10);
+ 112   6                                                               // while(RI==0);
+ 113   6                                                        } while(ans1[n]!='\0');
+ 114   5                                                        if(!strcmp(ans1,"jason")) sucess_in_cypher=1;
+ 115   5                                                         else  {alarm++;
+ 116   6                                                                         point=reply;
+ 117   6                                                                do{
+C51 COMPILER V9.01   BLUETOOTHMM                                                           08/20/2020 19:51:22 PAGE 3   
+
+ 118   7                                                          SBUF=*point;
+ 119   7                                                          while(!TI);
+ 120   7                                                          TI=0;
+ 121   7                                                          point++;
+ 122   7                                                          }while(*point!='\0');
+ 123   6                                                                              point=ans1;
+ 124   6                                                                       do{
+ 125   7                                                          SBUF=*point;
+ 126   7                                                          while(!TI);
+ 127   7                                                          TI=0;
+ 128   7                                                          point++;
+ 129   7                                                          }while(*point!='\0');
+ 130   6                                                                       }
+ 131   5                                            break;
+ 132   5                                              }
+ 133   4                                      default:
+ 134   4                                            { 
+ 135   5                                                point=ques3;
+ 136   5                                                do{
+ 137   6                                                SBUF=*point;
+ 138   6                                                while(!TI);
+ 139   6                                                TI=0;
+ 140   6                                                point++;
+ 141   6                                                }while(*point!='\0');
+ 142   5                                                while(RI==0&&_cnt<5000){_cnt++;} 
+ 143   5                                               //     RI = 0;
+ 144   5          
+ 145   5                                                      do{      ans1[n]=SBUF;
+ 146   6                                                               n++;
+ 147   6                                                               RI = 0;
+ 148   6                                                               Delay_1ms(10);
+ 149   6                                                               // while(RI==0);
+ 150   6                                                        } while(ans1[n]!='\0');
+ 151   5                                                        if(!strcmp(ans1,"yes")) sucess_in_cypher=1;
+ 152   5                                                        else  {alarm++;
+ 153   6                                                                         point=reply;
+ 154   6                                                                do{
+ 155   7                                                          SBUF=*point;
+ 156   7                                                          while(!TI);
+ 157   7                                                          TI=0;
+ 158   7                                                          point++;
+ 159   7                                                          }while(*point!='\0');
+ 160   6                                                                      point=ans1;
+ 161   6                                                                       do{
+ 162   7                                                          SBUF=*point;
+ 163   7                                                          while(!TI);
+ 164   7                                                          TI=0;
+ 165   7                                                          point++;
+ 166   7                                                          }while(*point!='\0');
+ 167   6                                                                       }
+ 168   5                                            break;
+ 169   5                                              }
+ 170   4      
+ 171   4                                      }
+ 172   3                                      
+ 173   3                      }
+ 174   2                      else
+ 175   2                      {
+ 176   3                                      LED =1; //其他情况灯灭
+ 177   3                      }
+ 178   2                      
+ 179   2              }
+C51 COMPILER V9.01   BLUETOOTHMM                                                           08/20/2020 19:51:22 PAGE 4   
+
+ 180   1                if(sucess_in_cypher)
+ 181   1                {     
+ 182   2                      for(i=0; i<6; i++)
+ 183   2                      {
+ 184   3                              SBUF = passwd[i];   //将要发送的数据放入到发送寄存器
+ 185   3                              while(!TI);                 //等待发送数据完成
+ 186   3                              TI=0;                           //清除发送完成标志位
+ 187   3                              Delay_1ms(1);
+ 188   3                      }
+ 189   2                      }
+ 190   1                      ES = 1;
+ 191   1      } 
+ 192          
+ 193          
+ 194          /*******************************************************************************
+ 195          * 函 数 名       : UsartConfiguration()
+ 196          * 函数功能                 : 设置串口
+ 197          * 输    入       : 无
+ 198          * 输    出       : 无
+ 199          *******************************************************************************/
+ 200          
+ 201          void UsartConfiguration()
+ 202          {       
+ 203   1              SCON=0X50;                      //设置为工作方式1,8位数据，可变波特率
+ 204   1              TMOD|=0X20;                     //设置计数器工作方式2
+ 205   1              PCON=0X00;                      //波特率不加倍
+ 206   1              TH1=0XFd;                   //计数器初始值设置，9600@11.0592MHz
+ 207   1              TL1=0XFd;
+ 208   1              TR1=1;                                  //打开计数器
+ 209   1              ES = 1;         //开串口中断
+ 210   1          EA = 1;         //开总中断
+ 211   1      }
+ 212          
+ 213          
+ 214          /********************************************************************
+ 215          * 名称 : Delay_1ms()
+ 216          * 功能 : 延时子程序，延时时间为 1ms
+ 217          * x * 输入 : x (延时一毫秒的个数)
+ 218          * 输出 : 无
+ 219          ***********************************************************************/
+ 220          void Delay_1ms(u16 i)//1ms延时
+ 221          {
+ 222   1        u8 x,j;
+ 223   1        
+ 224   1        for(j=0;j<i;j++)
+ 225   1          for(x=0;x<=148;x++);
+ 226   1      
+ 227   1      }
+ 228          /********************************************************************
+ 229          * 名称 : Delay_1ms()
+ 230          * 功能 : 延时子程序，延时时间为 1ms
+ 231          * x * 输入 : x (延时一毫秒的个数)
+ 232          * 输出 : 无
+ 233          ***********************************************************************/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1407    ----
+   CONSTANT SIZE    =     67    ----
+   XDATA SIZE       =     42    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+C51 COMPILER V9.01   BLUETOOTHMM                                                           08/20/2020 19:51:22 PAGE 5   
+
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

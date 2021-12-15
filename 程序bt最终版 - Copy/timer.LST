@@ -1,0 +1,43 @@
+C51 COMPILER V9.01   TIMER                                                                 08/20/2020 19:51:22 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE TIMER
+OBJECT MODULE PLACED IN timer.OBJ
+COMPILER INVOKED BY: F:\keil51\C51\BIN\C51.EXE timer.c LARGE OPTIMIZE(0,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include "reg52.h"                       //此文件中定义了单片机的一些特殊功能寄存器
+   2          #include "timer.h"
+   3          
+   4          
+   5          /*******************************************************************************
+   6          * 函 数 名         : Timer0Init
+   7          * 函数功能                 : 定时器0初始化
+   8          * 输    入         : 无
+   9          * 输    出         : 无
+  10          *******************************************************************************/
+  11          void Timer0Init()//延时50ms
+  12          {
+  13   1              TMOD|=0X01;//选择为定时器0模式，工作方式1，仅用TR0打开启动。
+  14   1      
+  15   1              TH0=0X3C;       //给定时器赋初值，定时50ms
+  16   1              TL0=0XB0;       
+  17   1              ET0=1;//打开定时器0中断允许
+  18   1              EA=1;//打开总中断
+  19   1              TR0=1;//打开定时器                      
+  20   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     16    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
